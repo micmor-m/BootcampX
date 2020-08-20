@@ -9,19 +9,26 @@ const pool = new Pool({
   database: 'bootcampx'
 });
 
-const [, , cohort] = process.argv;
+//potential dangerous value from user
+const cohortName = process.argv[2];
 
-// Get the name of all teachers that performed an assistance request during a cohort.
-pool.query(`
-SELECT teachers.name as teacher, cohorts.name as cohort
-FROM teachers
-JOIN assistance_requests ON (teachers.id=assistance_requests.teacher_id)
-JOIN students ON students.id = student_id
-JOIN cohorts ON cohorts.id = cohort_id
-WHERE teachers.id IN (assistance_requests.teacher_id) AND cohorts.name = '${cohort}'
-GROUP BY teachers.name, cohorts.name
-ORDER BY teachers.name;
-`)
+//pass query and value separate to be safetly manage by sql
+const query = {
+  text: `
+  SELECT teachers.name as teacher, cohorts.name as cohort
+  FROM teachers
+  JOIN assistance_requests ON (teachers.id=assistance_requests.teacher_id)
+  JOIN students ON students.id = student_id
+  JOIN cohorts ON cohorts.id = cohort_id
+  WHERE teachers.id IN (assistance_requests.teacher_id) AND cohorts.name = $1
+  GROUP BY teachers.name, cohorts.name
+  ORDER BY teachers.name;
+  `,
+  values: [cohortName],
+}
+
+pool
+.query(query)
 .then(res => {
   res.rows.forEach(user => {
     console.log(`${user.cohort}: ${user.teacher}`);
